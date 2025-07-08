@@ -14,20 +14,14 @@ import org.hibernate.type.SqlTypes;
 @Data
 public class Salon {
 
-        /* ---------- PK con secuencia Oracle ---------- */
         @Id
         @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "salon_seq")
         @SequenceGenerator(name = "salon_seq", sequenceName = "salon_sequence", allocationSize = 1)
         private Long id;
 
-        /* ---------- Datos básicos ---------- */
         @Column(nullable = false, length = 100)
         private String name;
 
-        /*
-         * List<String> funciona en Oracle; se crea tabla intermedia
-         * SALON_IMAGES (SALON_ID, IMAGES)
-         */
         @ElementCollection
         @CollectionTable(name = "salon_images", joinColumns = @JoinColumn(name = "salon_id"))
         @Column(name = "image", length = 400)
@@ -36,7 +30,7 @@ public class Salon {
         @Column(nullable = false, length = 255)
         private String address;
 
-        @Column(nullable = false, length = 15)
+        @Column(name = "phone_number", nullable = true, length = 15) // 🚀 CAMBIAR A nullable = true
         private String phoneNumber;
 
         @Column(nullable = false, length = 255)
@@ -45,18 +39,16 @@ public class Salon {
         @Column(nullable = false, length = 50)
         private String city;
 
-        /* ---------- Flags booleanos (NUMBER(1)) ---------- */
+        // 🚀 CAMPOS BOOLEANOS PARA ORACLE
         @Column(name = "is_open", nullable = false, precision = 1)
         private Integer isOpen; // 1 = true, 0 = false
 
         @Column(name = "home_service", nullable = false, precision = 1)
-        private Integer homeService;
+        private Integer homeService; // 1 = true, 0 = false
 
-        @JdbcTypeCode(SqlTypes.BOOLEAN) // Hibernate 6+
-        @Column(name = "active", nullable = false)
-        private boolean active;
+        @Column(name = "active", nullable = false, precision = 1)
+        private Integer active; // 1 = true, 0 = false
 
-        /* ---------- Resto de campos ---------- */
         @Column(name = "owner_id", nullable = false)
         private Long ownerId;
 
@@ -66,13 +58,7 @@ public class Salon {
         @Column(name = "close_time", nullable = false)
         private LocalTime closeTime;
 
-        /*
-         * =======================================================
-         * Métodos proxy para NO romper tu código existente
-         * =======================================================
-         */
-
-        /* ----- isOpen ----- */
+        // 🚀 MÉTODOS PROXY PARA COMPATIBILIDAD
         public boolean isOpen() {
                 return isOpen != null && isOpen == 1;
         }
@@ -81,7 +67,6 @@ public class Salon {
                 this.isOpen = v ? 1 : 0;
         }
 
-        /* ----- homeService ----- */
         public boolean isHomeService() {
                 return homeService != null && homeService == 1;
         }
@@ -90,4 +75,11 @@ public class Salon {
                 this.homeService = v ? 1 : 0;
         }
 
+        public boolean isActive() {
+                return active != null && active == 1;
+        }
+
+        public void setActive(boolean v) {
+                this.active = v ? 1 : 0;
+        }
 }
