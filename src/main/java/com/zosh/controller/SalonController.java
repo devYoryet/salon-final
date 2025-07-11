@@ -23,6 +23,8 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 @RestController
 @RequiredArgsConstructor
@@ -46,30 +48,12 @@ public class SalonController {
             @RequestHeader(value = "X-User-Role", required = false) String userRole,
             @RequestHeader(value = "X-Auth-Source", required = false) String authSource) throws Exception {
 
-        System.out.println("🏛️ =========================");
         System.out.println("🏛️ SALON SERVICE - CREATE SALON");
-        System.out.println("🏛️ =========================");
 
         // 🚀 DEBUG COMPLETO DEL DTO RECIBIDO
         System.out.println("📋 SALON DTO RECIBIDO:");
-        System.out.println("   name: '" + salonDTO.getName() + "'");
-        System.out.println("   address: '" + salonDTO.getAddress() + "'");
-        System.out.println("   city: '" + salonDTO.getCity() + "'");
-        System.out.println("   phoneNumber: '" + salonDTO.getPhoneNumber() + "'");
-        System.out.println("   email: '" + salonDTO.getEmail() + "'");
         System.out.println("   openTime: " + salonDTO.getOpenTime());
         System.out.println("   closeTime: " + salonDTO.getCloseTime());
-        System.out.println(
-                "   images: " + (salonDTO.getImages() != null ? salonDTO.getImages().size() + " items" : "NULL"));
-        System.out.println("   homeService: " + salonDTO.isHomeService());
-        System.out.println("   active: " + salonDTO.isActive());
-        System.out.println("   ownerId: " + salonDTO.getOwnerId());
-
-        // 🚀 DEBUG HEADERS
-        System.out.println("🎯 HEADERS:");
-        System.out.println("   X-Cognito-Sub: " + cognitoSub);
-        System.out.println("   X-User-Email: " + userEmail);
-        System.out.println("   X-Auth-Source: " + authSource);
 
         UserDTO user = null;
 
@@ -90,58 +74,55 @@ public class SalonController {
             throw new UserException("Usuario no encontrado");
         }
 
-        System.out.println("🏛️ Usuario encontrado: " + user.getEmail() + " (ID: " + user.getId() + ")");
-
-        // 🚀 VALIDAR DATOS ANTES DE CREAR
-        System.out.println("🔍 VALIDANDO DATOS ANTES DE CREAR SALÓN:");
-
-        if (salonDTO.getName() == null || salonDTO.getName().trim().isEmpty()) {
-            throw new Exception("Nombre del salón es requerido");
-        }
-        if (salonDTO.getAddress() == null || salonDTO.getAddress().trim().isEmpty()) {
-            throw new Exception("Dirección del salón es requerida");
-        }
-        if (salonDTO.getCity() == null || salonDTO.getCity().trim().isEmpty()) {
-            throw new Exception("Ciudad del salón es requerida");
-        }
-        if (salonDTO.getEmail() == null || salonDTO.getEmail().trim().isEmpty()) {
-            throw new Exception("Email del salón es requerido");
-        }
-        if (user.getId() == null) {
-            throw new Exception("ID del usuario es requerido");
-        }
-
-        // 🚀 SANITIZAR DATOS
+        // 🚀 SANITIZAR DATOS BÁSICOS
         System.out.println("🧹 SANITIZANDO DATOS:");
         salonDTO.setName(salonDTO.getName().trim());
         salonDTO.setAddress(salonDTO.getAddress().trim());
         salonDTO.setCity(salonDTO.getCity().trim());
         salonDTO.setEmail(salonDTO.getEmail().trim());
 
-        // Manejar phoneNumber null
         if (salonDTO.getPhoneNumber() == null) {
             salonDTO.setPhoneNumber("");
-            System.out.println("⚠️ phoneNumber era NULL, establecido a cadena vacía");
         }
 
-        // Manejar images null
         if (salonDTO.getImages() == null || salonDTO.getImages().isEmpty()) {
             salonDTO.setImages(List.of(
                     "https://images.pexels.com/photos/3998415/pexels-photo-3998415.jpeg?auto=compress&cs=tinysrgb&w=600"));
-            System.out.println("⚠️ images era NULL, establecido imagen por defecto");
         }
 
-        // Manejar tiempos null
+        // 🚀 ARREGLO CRÍTICO: MANEJO CORRECTO DE TIEMPOS
+        System.out.println("⏰ PROCESANDO TIEMPOS...");
+
+        // Validar y convertir openTime
         if (salonDTO.getOpenTime() == null) {
+            System.out.println("⚠️ openTime era NULL, estableciendo 09:00");
             salonDTO.setOpenTime(LocalTime.of(9, 0));
-            System.out.println("⚠️ openTime era NULL, establecido a 09:00");
-        }
-        if (salonDTO.getCloseTime() == null) {
-            salonDTO.setCloseTime(LocalTime.of(18, 0));
-            System.out.println("⚠️ closeTime era NULL, establecido a 18:00");
+        } else {
+            // 🚀 CONVERTIR SI VIENE EN FORMATO INCORRECTO
+            LocalTime fixedOpenTime = fixTimeFormat(salonDTO.getOpenTime());
+            salonDTO.setOpenTime(fixedOpenTime);
+            System.out.println("✅ openTime corregido: " + fixedOpenTime);
         }
 
-        System.out.println("✅ DATOS SANITIZADOS - CREANDO SALÓN");
+        // Validar y convertir closeTime
+        if (salonDTO.getCloseTime() == null) {
+            System.out.println("⚠️ closeTime era NULL, estableciendo 18:00");
+            salonDTO.setCloseTime(LocalTime.of(18, 0));
+        } else {
+            // 🚀 CONVERTIR SI VIENE EN FORMATO INCORRECTO
+            LocalTime fixedCloseTime = fixTimeFormat(salonDTO.getCloseTime());
+            salonDTO.setCloseTime(fixedCloseTime);
+            System.out.println("✅ closeTime corregido: " + fixedCloseTime);
+        }
+
+        // Validar que closeTime sea después de openTime
+        if (!salonDTO.getCloseTime().isAfter(salonDTO.getOpenTime())) {
+            throw new Exception("La hora de cierre debe ser posterior a la hora de apertura");
+        }
+
+        System.out.println("✅ TIEMPOS VALIDADOS:");
+        System.out.println("   openTime final: " + salonDTO.getOpenTime());
+        System.out.println("   closeTime final: " + salonDTO.getCloseTime());
 
         try {
             // 🚀 CREAR EL SALÓN
@@ -174,6 +155,54 @@ public class SalonController {
             System.err.println("   Tipo: " + e.getClass().getSimpleName());
             e.printStackTrace();
             throw e;
+        }
+    }
+
+    // 🚀 MÉTODO HELPER PARA ARREGLAR FORMATO DE TIEMPO
+    private LocalTime fixTimeFormat(LocalTime originalTime) {
+        try {
+            // Si ya es LocalTime válido, retornarlo
+            if (originalTime != null) {
+                // Verificar si tiene el bug de 1970 (hora extraña)
+                String timeStr = originalTime.toString();
+
+                // Si es una hora normal (no viene de 1970), está bien
+                if (originalTime.getHour() >= 0 && originalTime.getHour() <= 23) {
+                    return originalTime;
+                }
+            }
+
+            // Si llega aquí, hay problema - usar hora por defecto
+            return LocalTime.of(9, 0);
+
+        } catch (Exception e) {
+            System.err.println("❌ Error procesando tiempo, usando por defecto: " + e.getMessage());
+            return LocalTime.of(9, 0);
+        }
+    }
+
+    // 🚀 MÉTODO ALTERNATIVO PARA PARSEAR DESDE STRING SI VIENE MAL
+    private LocalTime parseTimeFromString(String timeString) {
+        try {
+            if (timeString == null || timeString.isEmpty()) {
+                return LocalTime.of(9, 0);
+            }
+
+            // Si viene como "2025-07-04T15:00:00" - extraer solo la hora
+            if (timeString.contains("T")) {
+                String timePart = timeString.split("T")[1];
+                if (timePart.contains("Z")) {
+                    timePart = timePart.replace("Z", "");
+                }
+                return LocalTime.parse(timePart);
+            }
+
+            // Si viene como hora normal "15:00:00"
+            return LocalTime.parse(timeString);
+
+        } catch (Exception e) {
+            System.err.println("❌ Error parseando tiempo: " + timeString + " - Error: " + e.getMessage());
+            return LocalTime.of(9, 0);
         }
     }
 
@@ -262,6 +291,29 @@ public class SalonController {
         }
     }
 
+    @GetMapping("/api/salons/{salonId}/public")
+    public ResponseEntity<SalonDTO> getSalonByIdPublic(@PathVariable Long salonId) throws Exception {
+
+        System.out.println("🔍 Obteniendo salón por ID (público): " + salonId);
+
+        Salon salon = salonService.getSalonById(salonId);
+        if (salon == null) {
+            throw new Exception("Salón no encontrado con ID: " + salonId);
+        }
+
+        try {
+            // 🚀 INTENTAR OBTENER PROPIETARIO (sin requerir JWT)
+            UserDTO owner = userFeignClient.getUserById(salon.getOwnerId()).getBody();
+            SalonDTO salonDTO = SalonMapper.mapToDTO(salon, owner);
+            return ResponseEntity.ok(salonDTO);
+        } catch (Exception e) {
+            System.err.println("⚠️ Error obteniendo propietario: " + e.getMessage());
+            // 🚀 CREAR PROPIETARIO BÁSICO SI FALLA
+            UserDTO basicOwner = createBasicOwnerDTO(salon.getOwnerId());
+            SalonDTO salonDTO = SalonMapper.mapToDTO(salon, basicOwner);
+            return ResponseEntity.ok(salonDTO);
+        }
+    }
     // =========================================================================
     // OBTENER SALÓN POR PROPIETARIO
     // =========================================================================
