@@ -1,0 +1,68 @@
+# =============================================================================
+# SALON SERVICE - application.yml
+# Puerto: 8082
+# =============================================================================
+server:
+  port: ${SERVER_PORT:8082}
+
+spring:
+  application:
+    name: ${SPRING_APPLICATION_NAME:salon}
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:oracle:thin:@localhost:1521:xe}
+    username: ${SPRING_DATASOURCE_USERNAME:dev_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:dev_pass}
+    driver-class-name: oracle.jdbc.OracleDriver
+
+  jpa:
+    database-platform: org.hibernate.dialect.OracleDialect
+    hibernate:
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
+
+eureka:
+  instance:
+    preferIpAddress: true
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:salon}
+  client:
+    fetchRegistry: true
+    registerWithEureka: true
+    serviceUrl:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8070/eureka/}
+
+
+# Configuración de Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    shutdown:
+      enabled: true
+    health:
+      probes:
+        enabled: true
+  health:
+    readiness-state:
+      enabled: true
+    liveness-state:
+      enabled: true
+  
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    virtual-host: ${RABBITMQ_VIRTUAL_HOST:salon-booking}
+
+# Información de la aplicación
+info:
+  app:
+    name: "SALON"
+    description: "Salon Management API For Salon Booking System"
+    version: "1.0.0"
+    service-port: 8082
+    
