@@ -8,7 +8,10 @@ import com.zosh.service.SalonService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Service
@@ -152,5 +155,75 @@ public class SalonServiceImp implements SalonService {
     public List<Salon> searchSalonByCity(String city) {
         return salonRepository.searchSalons(city);
     }
+@Override
+    public List<String> getAllCities() {
+        System.out.println("🏙️ SERVICE - Obteniendo todas las ciudades");
+        
+        try {
+            // Obtener todas las ciudades únicas de los salones activos
+            List<Salon> salons = salonRepository.findAll();
+            
+            List<String> cities = salons.stream()
+                .filter(salon -> salon.getCity() != null && !salon.getCity().trim().isEmpty())
+                .map(salon -> salon.getCity().trim())
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+                
+            System.out.println("✅ Ciudades encontradas: " + cities);
+            return cities;
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error obteniendo ciudades: " + e.getMessage());
+            // Retornar ciudades por defecto en caso de error
+            return Arrays.asList("Santiago", "Valparaíso", "Concepción", "La Serena", "Temuco");
+        }
+    }
 
+    @Override
+    public List<Salon> searchWithFilters(String city, String salonName, boolean homeService) {
+        System.out.println("🔍 SERVICE - Búsqueda con filtros");
+        System.out.println("   City: " + city);
+        System.out.println("   Salon Name: " + salonName);
+        System.out.println("   Home Service: " + homeService);
+        
+        try {
+            List<Salon> allSalons = salonRepository.findAll();
+            
+            List<Salon> filteredSalons = allSalons.stream()
+                .filter(salon -> {
+                    // Filtro por ciudad
+                    if (city != null && !city.trim().isEmpty()) {
+                        if (salon.getCity() == null || 
+                            !salon.getCity().toLowerCase().contains(city.toLowerCase())) {
+                            return false;
+                        }
+                    }
+                    
+                    // Filtro por nombre del salón
+                    if (salonName != null && !salonName.trim().isEmpty()) {
+                        if (salon.getName() == null || 
+                            !salon.getName().toLowerCase().contains(salonName.toLowerCase())) {
+                            return false;
+                        }
+                    }
+                    
+                    // Filtro por servicio a domicilio
+                    if (homeService && !salon.isHomeService()) {
+                        return false;
+                    }
+                    
+                    // Solo salones activos
+                    return salon.isActive();
+                })
+                .collect(Collectors.toList());
+                
+            System.out.println("✅ SERVICE - Encontrados " + filteredSalons.size() + " salones");
+            return filteredSalons;
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error en búsqueda con filtros: " + e.getMessage());
+            return new ArrayList<>();
+        }
+    }
 }

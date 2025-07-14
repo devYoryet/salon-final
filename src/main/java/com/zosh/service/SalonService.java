@@ -8,7 +8,6 @@ import java.util.List;
 
 public interface SalonService {
 
-
     Salon createSalon(SalonDTO salon, UserDTO user);
 
     Salon updateSalon(Long salonId, Salon salon) throws Exception;
@@ -20,4 +19,8 @@ public interface SalonService {
     Salon getSalonByOwnerId(Long ownerId);
 
     List<Salon> searchSalonByCity(String city);
+
+    List<String> getAllCities();
+
+    List<Salon> searchWithFilters(String city, String salonName, boolean homeService);
 }

@@ -457,4 +457,67 @@ public class SalonController {
     private String generateUsernameFromCognito(String cognitoSub) {
         return "User " + cognitoSub.substring(0, Math.min(8, cognitoSub.length()));
     }
+
+   // =============================================================================
+// AGREGAR ESTOS 2 MÉTODOS AL SalonController.java EXISTENTE
+// Solo agregar al final del archivo, antes de la llave de cierre
+// =============================================================================
+
+    // =========================================================================
+    // 🚀 NUEVO ENDPOINT 1: OBTENER CIUDADES DISPONIBLES
+    // =========================================================================
+    @GetMapping("/cities")
+    public ResponseEntity<List<String>> getAvailableCities() {
+        System.out.println("🏙️ Obteniendo ciudades disponibles");
+        
+        try {
+            List<String> cities = salonService.getAllCities();
+            System.out.println("✅ Ciudades encontradas: " + cities.size());
+            return ResponseEntity.ok(cities);
+        } catch (Exception e) {
+            System.err.println("❌ Error obteniendo ciudades: " + e.getMessage());
+            return ResponseEntity.ok(List.of("Santiago", "Valparaíso", "Concepción")); // Fallback
+        }
+    }
+
+    // =========================================================================
+    // 🚀 NUEVO ENDPOINT 2: BÚSQUEDA CON FILTROS MÚLTIPLES
+    // =========================================================================
+    @GetMapping("/search/filters")
+    public ResponseEntity<List<SalonDTO>> searchSalonsWithFilters(
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) String salonName,
+            @RequestParam(defaultValue = "false") boolean homeService,
+            @RequestHeader("Authorization") String jwt) throws Exception {
+
+        System.out.println("🔍 BÚSQUEDA CON FILTROS:");
+        System.out.println("   City: " + city);
+        System.out.println("   Salon Name: " + salonName);
+        System.out.println("   Home Service: " + homeService);
+
+        try {
+            List<Salon> salons = salonService.searchWithFilters(city, salonName, homeService);
+            
+            List<SalonDTO> salonDTOs = salons.stream()
+                    .map(salon -> {
+                        try {
+                            UserDTO owner = userFeignClient.getUserById(salon.getOwnerId()).getBody();
+                            return SalonMapper.mapToDTO(salon, owner);
+                        } catch (Exception e) {
+                            System.err.println("⚠️ Error obteniendo owner para salón " + salon.getId());
+                            UserDTO basicOwner = createBasicOwnerDTO(salon.getOwnerId());
+                            return SalonMapper.mapToDTO(salon, basicOwner);
+                        }
+                    })
+                    .collect(Collectors.toList());
+
+            System.out.println("✅ Encontrados " + salonDTOs.size() + " salones");
+            return ResponseEntity.ok(salonDTOs);
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error en búsqueda con filtros: " + e.getMessage());
+            return ResponseEntity.ok(List.of()); // Retornar lista vacía en caso de error
+        }
+    }
+
 }
